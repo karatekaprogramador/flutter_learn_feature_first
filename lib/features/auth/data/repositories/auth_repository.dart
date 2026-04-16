@@ -33,4 +33,8 @@ class AuthRepository {
   Future<void> signInWithOAuth(AuthOAuthProvider provider) {
     return _authService.startOAuth(provider);
   }
+
+  Future<AuthResult> exchangeOAuthCode(String code) {
+    return _authService.exchangeOAuthCode(code);
+  }
 }

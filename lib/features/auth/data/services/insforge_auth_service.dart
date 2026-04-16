@@ -100,8 +100,11 @@ class InsforgeAuthService {
     );
   }
 
+  String? _lastCodeVerifier;
+
   Future<void> startOAuth(AuthOAuthProvider provider) async {
     final pkce = _generatePkce();
+    _lastCodeVerifier = pkce.codeVerifier;
 
     final response = await _request(
       () => _dio.get<Map<String, dynamic>>(
@@ -128,6 +131,29 @@ class InsforgeAuthService {
     if (!launched) {
       throw AuthApiException('No se pudo abrir ${provider.label}.');
     }
+  }
+
+  Future<AuthResult> exchangeOAuthCode(String code) async {
+    if (_lastCodeVerifier == null) {
+      throw const AuthApiException('No existe un flujo OAuth activo para completar.');
+    }
+
+    final response = await _request(
+      () => _dio.post<Map<String, dynamic>>(
+        '$_baseUrl/api/auth/oauth/exchange',
+        data: {
+          'code': code,
+          'code_verifier': _lastCodeVerifier,
+        },
+      ),
+    );
+
+    _lastCodeVerifier = null;
+
+    return _parseAuthResult(
+      response,
+      successMessage: 'Autenticación OAuth exitosa.',
+    );
   }
 
   String get _baseUrl {

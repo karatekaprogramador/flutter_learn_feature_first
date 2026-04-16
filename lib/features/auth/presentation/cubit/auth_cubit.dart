@@ -48,6 +48,7 @@ class AuthCubit extends Cubit<AuthState> {
           status: AuthStatus.success,
           message: result.message,
           isAuthenticated: true,
+          accessToken: result.accessToken,
         ),
       );
     } on AuthApiException catch (e) {
@@ -105,5 +106,56 @@ class AuthCubit extends Cubit<AuthState> {
         ),
       );
     }
+  }
+
+  Future<void> exchangeOAuthCode(String code) async {
+    emit(
+      state.copyWith(
+        status: AuthStatus.loading,
+        isAuthenticated: false,
+        clearMessage: true,
+      ),
+    );
+
+    try {
+      final result = await _authRepository.exchangeOAuthCode(code);
+      if (result.accessToken != null) {
+        setAccessToken(result.accessToken!);
+      } else {
+        emit(
+          state.copyWith(
+            status: AuthStatus.error,
+            message: 'No se recibió el token de autenticación.',
+            isAuthenticated: false,
+          ),
+        );
+      }
+    } on AuthApiException catch (e) {
+      emit(
+        state.copyWith(
+          status: AuthStatus.error,
+          message: e.message,
+          isAuthenticated: false,
+        ),
+      );
+    } catch (_) {
+      emit(
+        state.copyWith(
+          status: AuthStatus.error,
+          message: 'Error intercambiando código OAuth.',
+          isAuthenticated: false,
+        ),
+      );
+    }
+  }
+
+  void setAccessToken(String token) {
+    emit(
+      state.copyWith(
+        status: AuthStatus.success,
+        isAuthenticated: true,
+        accessToken: token,
+      ),
+    );
   }
 }
